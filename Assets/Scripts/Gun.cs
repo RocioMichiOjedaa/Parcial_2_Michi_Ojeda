@@ -44,6 +44,11 @@ public class Gun : MonoBehaviour
             {
                 enemy.TakeDamage(damage);
             }
+            else if (hit.collider.GetComponentInParent<EnemyAI>())
+            {
+                EnemyAI enemyGO = hit.collider.GetComponentInParent<EnemyAI>();
+                enemyGO.TakeDamage(damage);
+            }
         }
 
         Debug.Log("Balas restantes: " + currentAmmo);
