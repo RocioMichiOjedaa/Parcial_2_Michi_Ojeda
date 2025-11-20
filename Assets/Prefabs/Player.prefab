@@ -125,6 +125,9 @@ MonoBehaviour:
   damage: 10
   range: 50
   fireRate: 0.5
+  magSize: 15
+  currentAmmo: 0
+  isReloading: 0
 --- !u!1 &3997438146014786664
 GameObject:
   m_ObjectHideFlags: 0
@@ -293,7 +296,7 @@ CharacterController:
   m_Height: 2
   m_Radius: 0.49999997
   m_SlopeLimit: 45
-  m_StepOffset: 0.3
+  m_StepOffset: 0.5
   m_SkinWidth: 0.0001
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
@@ -310,8 +313,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
-  rotationSpeed: 0.8
+  rotationSpeed: 5
+  normalHeight: 2
+  crouchHeight: 1
+  crouchSpeedMultiplier: 0.25
   gun: {fileID: 5028985099897801791}
+  gravity: -9.81
 --- !u!114 &8907726390881281024
 MonoBehaviour:
   m_ObjectHideFlags: 0
