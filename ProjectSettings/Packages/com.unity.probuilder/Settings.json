@@ -89,7 +89,7 @@
             {
                 "type": "UnityEngine.Vector3, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
                 "key": "ShapeBuilder.LastSize.Stairs",
-                "value": "{\"m_Value\":{\"x\":3.6904077529907228,\"y\":3.4939301013946535,\"z\":6.199918746948242}}"
+                "value": "{\"m_Value\":{\"x\":2.928499698638916,\"y\":3.3041653633117677,\"z\":3.683992385864258}}"
             },
             {
                 "type": "UnityEngine.Quaternion, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
