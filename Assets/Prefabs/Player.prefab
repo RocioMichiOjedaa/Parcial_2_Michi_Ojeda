@@ -128,6 +128,7 @@ MonoBehaviour:
   magSize: 15
   currentAmmo: 0
   isReloading: 0
+  bulletsText: {fileID: 0}
 --- !u!1 &3997438146014786664
 GameObject:
   m_ObjectHideFlags: 0
@@ -319,6 +320,11 @@ MonoBehaviour:
   crouchSpeedMultiplier: 0.25
   gun: {fileID: 5028985099897801791}
   gravity: -9.81
+  cameraPivot: {fileID: 8765525280717583599}
+  horizontalSensitivity: 0.2
+  verticalSensitivity: 0.2
+  minPitch: -45
+  maxPitch: 70
 --- !u!114 &8907726390881281024
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -337,6 +343,7 @@ MonoBehaviour:
   currentStamina: 0
   staminaRegenRate: 1
   canRegenStamina: 1
+  lifeText: {fileID: 0}
 --- !u!1 &5384913333013556764
 GameObject:
   m_ObjectHideFlags: 0

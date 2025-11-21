@@ -20,6 +20,18 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float gravity = -9.81f;
     private Vector3 velocity;
 
+    [Header("Camera Look")]
+    [SerializeField] private Transform cameraPivot;
+
+    [Header("Camera Look Sensitivity")]
+    [SerializeField] private float horizontalSensitivity = 1.5f;
+    [SerializeField] private float verticalSensitivity = 0.7f;
+
+    [SerializeField] private float minPitch = -45f;
+    [SerializeField] private float maxPitch = 70f;
+
+    private float pitch = 0f;
+
     private CharacterController controller;
     private PlayerInput playerInput;
     private Transform cam;
@@ -77,8 +89,18 @@ public class PlayerController : MonoBehaviour
     private void HandleLook()
     {
         Vector2 look = lookAction.ReadValue<Vector2>();
-        transform.Rotate(Vector3.up * look.x * rotationSpeed * Time.deltaTime);
+
+        // --- ROTACIÓN HORIZONTAL (YAW) ---
+        float yaw = look.x * horizontalSensitivity;
+        transform.Rotate(Vector3.up * yaw);
+
+        // --- ROTACIÓN VERTICAL (PITCH) ---
+        pitch -= look.y * verticalSensitivity;
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+
+        cameraPivot.localRotation = Quaternion.Euler(pitch, 0, 0);
     }
+
 
     private void HandleMovement()
     {
@@ -100,7 +122,7 @@ public class PlayerController : MonoBehaviour
 
         controller.Move(velocity * Time.deltaTime);
     }
-    
+
     private void ToggleCrouch()
     {
         isCrouching = !isCrouching;
