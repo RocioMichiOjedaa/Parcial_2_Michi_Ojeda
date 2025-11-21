@@ -1,26 +1,18 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 using UnityEngine.AI;
 
 public class EnemyAI : MonoBehaviour
 {
     public enum EnemyState { Normal, Chase, Damage, Dead }
 
-    [Header("Stats")]
-    public float maxHealth = 50f;
-    public float currentHealth;
+    [Header("Enemy Type")]
+    public Soldier soldierData;
 
-    [Header("Chase Settings")]
-    public float chaseDistance = 5f;
-    public float staminaDrainRate = 1f;
+    [Header("UI")]
+    public TMP_Text stateText;
 
-    [Header("Vision Settings")]
-    [Tooltip("Ángulo del cono en grados")]
-    public float visionAngle = 45f;
-
-    [Tooltip("Distancia máxima del cono de visión")]
-    public float visionRange = 7f;
-
-    [Tooltip("Si se activa, dibuja el cono")]
+    [Header("Vision Debug")]
     public bool debugVision = true;
 
     [SerializeField] private Transform eyePoint;
@@ -32,6 +24,9 @@ public class EnemyAI : MonoBehaviour
     private Vector3 spawnPos;
     private Transform playerLookTarget;
 
+    private bool hasSeenPlayer = false;
+    private float currentHealth;
+
     private void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -40,9 +35,11 @@ public class EnemyAI : MonoBehaviour
         playerStats = player.GetComponent<PlayerStats>();
 
         spawnPos = transform.position;
-        currentHealth = maxHealth;
+        currentHealth = soldierData.maxHealth;
 
         playerLookTarget = player.Find("Face");
+
+        UpdateStateText();
     }
 
     private void Update()
@@ -50,12 +47,19 @@ public class EnemyAI : MonoBehaviour
         if (currentState == EnemyState.Dead) return;
         if (!agent.enabled || !agent.isOnNavMesh) return;
 
-        if (PlayerInVisionCone())
+        if (hasSeenPlayer)
         {
             SetState(EnemyState.Chase);
             ChasePlayer();
+            return;
+        }
 
-            playerStats.DrainStamina(staminaDrainRate);
+        if (PlayerInVisionCone())
+        {
+            hasSeenPlayer = true;
+            SetState(EnemyState.Chase);
+            ChasePlayer();
+            playerStats.DrainStamina(soldierData.staminaDrainRate);
         }
         else
         {
@@ -65,6 +69,15 @@ public class EnemyAI : MonoBehaviour
                 agent.ResetPath();
 
             playerStats.StopDraining();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (stateText != null && Camera.main != null)
+        {
+            stateText.transform.LookAt(Camera.main.transform);
+            stateText.transform.Rotate(0, 180, 0);
         }
     }
 
@@ -78,10 +91,10 @@ public class EnemyAI : MonoBehaviour
         for (int i = 0; i <= steps; i++)
         {
             float pct = (float)i / steps;
-            float angle = Mathf.Lerp(-visionAngle, visionAngle, pct);
+            float angle = Mathf.Lerp(-soldierData.visionAngle, soldierData.visionAngle, pct);
 
             Vector3 dir = Quaternion.Euler(0, angle, 0) * eyePoint.forward;
-            Gizmos.DrawRay(eyePoint.position, dir * visionRange);
+            Gizmos.DrawRay(eyePoint.position, dir * soldierData.visionRange);
         }
     }
 
@@ -96,8 +109,14 @@ public class EnemyAI : MonoBehaviour
         if (currentState != newState)
         {
             currentState = newState;
-            Debug.Log("Enemy State → " + currentState);
+            UpdateStateText();
         }
+    }
+
+    private void UpdateStateText()
+    {
+        if (stateText != null)
+            stateText.text = currentState.ToString();
     }
 
     public void TakeDamage(float dmg)
@@ -105,8 +124,6 @@ public class EnemyAI : MonoBehaviour
         if (currentState == EnemyState.Dead) return;
 
         currentHealth -= dmg;
-        Debug.Log($"Enemy damaged! HP: {currentHealth}");
-
         SetState(EnemyState.Damage);
 
         if (currentHealth <= 0f)
@@ -122,28 +139,27 @@ public class EnemyAI : MonoBehaviour
 
     public void Respawn()
     {
-        currentHealth = maxHealth;
+        currentHealth = soldierData.maxHealth;
         transform.position = spawnPos;
         agent.enabled = true;
+        hasSeenPlayer = false;
         SetState(EnemyState.Normal);
         gameObject.SetActive(true);
     }
 
     private bool PlayerInVisionCone()
     {
-        // dirección desde los ojos del enemigo al centro del jugador
+        if (playerLookTarget == null) return false;
+
         Vector3 toPlayer = (playerLookTarget.position - eyePoint.position);
         Vector3 dir = toPlayer.normalized;
 
-        // 1) Rango
-        if (toPlayer.magnitude > visionRange) return false;
+        if (toPlayer.magnitude > soldierData.visionRange) return false;
 
-        // 2) Ángulo
         float angle = Vector3.Angle(eyePoint.forward, dir);
-        if (angle > visionAngle) return false;
+        if (angle > soldierData.visionAngle) return false;
 
-        // 3) Line of sight real
-        if (Physics.Raycast(eyePoint.position, dir, out RaycastHit hit, visionRange))
+        if (Physics.Raycast(eyePoint.position, dir, out RaycastHit hit, soldierData.visionRange))
         {
             return hit.collider.CompareTag("Player");
         }

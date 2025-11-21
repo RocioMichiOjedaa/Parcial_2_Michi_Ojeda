@@ -20,7 +20,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float gravity = -9.81f;
     private Vector3 velocity;
 
-
     private CharacterController controller;
     private PlayerInput playerInput;
     private Transform cam;
@@ -92,10 +91,8 @@ public class PlayerController : MonoBehaviour
         if (move.sqrMagnitude > 1f)
             move.Normalize();
 
-        // Movimiento plano
         controller.Move(move * moveSpeed * Time.deltaTime);
 
-        // ===== GRAVEDAD =====
         if (controller.isGrounded)
             velocity.y = -1f;
         else

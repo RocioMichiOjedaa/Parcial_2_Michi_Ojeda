@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 public class Gun : MonoBehaviour
@@ -12,6 +13,8 @@ public class Gun : MonoBehaviour
     public int currentAmmo;
     public bool isReloading = false;
 
+    public TMP_Text bulletsText;
+
     float nextTimeToShoot;
     Camera cam;
 
@@ -19,14 +22,14 @@ public class Gun : MonoBehaviour
     {
         cam = Camera.main;
         currentAmmo = magSize;
+
+        bulletsText.text = "Balas: " + currentAmmo + " / " + magSize;
     }
 
     public void Shoot()
     {
-        // no dispara si está recargando
         if (isReloading) return;
 
-        // no dispara si no hay balas
         if (currentAmmo <= 0)
         {
             Debug.Log("SIN BALAS");
@@ -37,6 +40,7 @@ public class Gun : MonoBehaviour
         nextTimeToShoot = Time.time + fireRate;
 
         currentAmmo--;
+        bulletsText.text = "Balas: " + currentAmmo + " / " + magSize;
 
         if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, range))
         {
@@ -65,8 +69,9 @@ public class Gun : MonoBehaviour
         Debug.Log("Recargando...");
         isReloading = true;
 
-        // no hay tiempo animado, así que recarga instantáneo
         currentAmmo = magSize;
         isReloading = false;
+
+        bulletsText.text = "Balas: " + currentAmmo + " / " + magSize;
     }
 }
