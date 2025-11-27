@@ -27,7 +27,6 @@ public class EnemyAI : MonoBehaviour
     private bool hasSeenPlayer = false;
     private float currentHealth;
 
-    // ataque
     private float nextFireTime = 0f;
 
     private void Start()
@@ -49,6 +48,14 @@ public class EnemyAI : MonoBehaviour
     {
         if (currentState == EnemyState.Dead) return;
         if (!agent.enabled || !agent.isOnNavMesh) return;
+
+        if (playerStats.Died)
+        {
+            SetState(EnemyState.Normal);
+            agent.ResetPath();
+            hasSeenPlayer = false;
+            return;
+        }
 
         if (hasSeenPlayer)
         {
@@ -106,6 +113,8 @@ public class EnemyAI : MonoBehaviour
 
     private void ChasePlayer()
     {
+        if (playerStats.Died) return;
+
         agent.stoppingDistance = 2.2f;
         agent.SetDestination(player.position);
     }
@@ -114,6 +123,7 @@ public class EnemyAI : MonoBehaviour
     {
         if (!soldierData.hasWeapon) return;
         if (Time.time < nextFireTime) return;
+        if (playerStats.Died) return;
 
         Vector3 toPlayer = (playerLookTarget.position - eyePoint.position).normalized;
 
@@ -186,6 +196,7 @@ public class EnemyAI : MonoBehaviour
     private bool PlayerInVisionCone()
     {
         if (playerLookTarget == null) return false;
+        if (playerStats.Died) return false;
 
         Vector3 toPlayer = (playerLookTarget.position - eyePoint.position);
         Vector3 dir = toPlayer.normalized;

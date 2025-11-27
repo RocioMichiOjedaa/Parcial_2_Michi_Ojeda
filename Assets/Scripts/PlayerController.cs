@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController), typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
@@ -35,6 +36,7 @@ public class PlayerController : MonoBehaviour
     private CharacterController controller;
     private PlayerInput playerInput;
     private Transform cam;
+    private InputActionMap playerMap;
 
     private InputAction moveAction;
     private InputAction lookAction;
@@ -42,8 +44,16 @@ public class PlayerController : MonoBehaviour
     private InputAction reloadAction;
     private InputAction crouchAction;
 
+    private InputAction respawnAction;
+    private InputAction restartAction;
+
     private bool isCrouching = false;
     private float originalSpeed;
+
+    private Vector3 startPosition;
+    private Quaternion startRotation;
+
+    private PlayerStats stats;
 
     private void Awake()
     {
@@ -51,13 +61,25 @@ public class PlayerController : MonoBehaviour
         playerInput = GetComponent<PlayerInput>();
         cam = Camera.main.transform;
 
+        stats = GetComponent<PlayerStats>();
+        stats.Init(() => { ToggleInput(false); });
+
+        InputActionAsset inputs = playerInput.actions;
+        playerMap = inputs.FindActionMap("Player");
+
         moveAction = playerInput.actions["Move"];
         lookAction = playerInput.actions["Look"];
         shootAction = playerInput.actions["Shoot"];
         reloadAction = playerInput.actions["Reload"];
         crouchAction = playerInput.actions["Crouch"];
 
+        respawnAction = playerInput.actions["Respawn"];
+        restartAction = playerInput.actions["RestartScene"];
+
         originalSpeed = moveSpeed;
+
+        startPosition = transform.position;
+        startRotation = transform.rotation;
     }
 
     private void OnEnable()
@@ -65,6 +87,9 @@ public class PlayerController : MonoBehaviour
         shootAction.performed += _ => gun.Shoot();
         reloadAction.performed += _ => gun.Reload();
         crouchAction.performed += _ => ToggleCrouch();
+
+        respawnAction.performed += _ => RespawnPlayer();
+        restartAction.performed += _ => RestartScene();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -75,6 +100,9 @@ public class PlayerController : MonoBehaviour
         shootAction.performed -= _ => gun.Shoot();
         reloadAction.performed -= _ => gun.Reload();
         crouchAction.performed -= _ => ToggleCrouch();
+
+        respawnAction.performed -= _ => RespawnPlayer();
+        restartAction.performed -= _ => RestartScene();
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -90,17 +118,14 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 look = lookAction.ReadValue<Vector2>();
 
-        // --- ROTACIÓN HORIZONTAL (YAW) ---
         float yaw = look.x * horizontalSensitivity;
         transform.Rotate(Vector3.up * yaw);
 
-        // --- ROTACIÓN VERTICAL (PITCH) ---
         pitch -= look.y * verticalSensitivity;
         pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
 
         cameraPivot.localRotation = Quaternion.Euler(pitch, 0, 0);
     }
-
 
     private void HandleMovement()
     {
@@ -136,6 +161,52 @@ public class PlayerController : MonoBehaviour
         {
             controller.height = normalHeight;
             moveSpeed = originalSpeed;
+        }
+    }
+
+    private void RespawnPlayer()
+    {
+        Debug.Log("Player respawn!");
+
+        // resetear transform
+        controller.enabled = false;
+        transform.position = startPosition;
+        transform.rotation = startRotation;
+        controller.enabled = true;
+
+        // resetear movimiento
+        velocity = Vector3.zero;
+        pitch = 0f;
+        cameraPivot.localRotation = Quaternion.identity;
+
+        // resetear stats
+        stats.ResetStats();
+
+        // resetear crouch
+        isCrouching = false;
+        controller.height = normalHeight;
+        moveSpeed = originalSpeed;
+
+        ToggleInput(true);
+    }
+
+    private void RestartScene()
+    {
+        Debug.Log("Restarting scene...");
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private void ToggleInput(bool status)
+    {
+        if (status)
+        {
+            playerMap.Enable();
+        }
+        else
+        {
+            playerMap.Disable();
+            playerMap.FindAction("Respawn").Enable();
+            playerMap.FindAction("RestartScene").Enable();
         }
     }
 }
