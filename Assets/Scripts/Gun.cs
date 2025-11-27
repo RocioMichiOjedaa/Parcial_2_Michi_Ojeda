@@ -53,6 +53,10 @@ public class Gun : MonoBehaviour
                 EnemyAI enemyGO = hit.collider.GetComponentInParent<EnemyAI>();
                 enemyGO.TakeDamage(damage);
             }
+            else if (hit.collider.TryGetComponent(out SurveillanceCamera sc))
+            {
+                sc.TakeDamage(damage);
+            }
         }
 
         Debug.Log("Balas restantes: " + currentAmmo);
