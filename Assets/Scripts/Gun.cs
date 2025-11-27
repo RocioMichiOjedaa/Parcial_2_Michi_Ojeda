@@ -57,6 +57,11 @@ public class Gun : MonoBehaviour
             {
                 sc.TakeDamage(damage);
             }
+            else if (hit.collider.GetComponentInParent<SurveillanceCamera>())
+            {
+                SurveillanceCamera scParent = hit.collider.GetComponentInParent<SurveillanceCamera>();
+                scParent.TakeDamage(damage);
+            }
         }
 
         Debug.Log("Balas restantes: " + currentAmmo);
