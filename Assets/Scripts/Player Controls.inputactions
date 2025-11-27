@@ -51,7 +51,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Restart",
+                    "name": "RestartScene",
                     "type": "Button",
                     "id": "d49c7efe-ae9c-4284-8999-54583dbd4eef",
                     "expectedControlType": "",
@@ -60,7 +60,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "RespawnPlayer",
+                    "name": "Respawn",
                     "type": "Button",
                     "id": "498471b7-1aa2-4a49-b905-2976ba0b9eab",
                     "expectedControlType": "",
@@ -205,7 +205,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Restart",
+                    "action": "RestartScene",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -216,7 +216,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "RespawnPlayer",
+                    "action": "Respawn",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
