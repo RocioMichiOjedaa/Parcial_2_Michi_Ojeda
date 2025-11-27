@@ -13,4 +13,10 @@ public class Soldier : ScriptableObject
     [Header("Chase")]
     public float chaseDistance = 5f;
     public float staminaDrainRate = 1f;
+
+    [Header("Attack")]
+    public bool hasWeapon = true;
+    public float attackDamage = 10f;
+    public float attackRange = 6f;
+    public float attackCooldown = 1f;
 }

@@ -27,6 +27,9 @@ public class EnemyAI : MonoBehaviour
     private bool hasSeenPlayer = false;
     private float currentHealth;
 
+    // ataque
+    private float nextFireTime = 0f;
+
     private void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -51,6 +54,7 @@ public class EnemyAI : MonoBehaviour
         {
             SetState(EnemyState.Chase);
             ChasePlayer();
+            TryShootPlayer();
             return;
         }
 
@@ -59,6 +63,8 @@ public class EnemyAI : MonoBehaviour
             hasSeenPlayer = true;
             SetState(EnemyState.Chase);
             ChasePlayer();
+            TryShootPlayer();
+
             playerStats.DrainStamina(soldierData.staminaDrainRate);
         }
         else
@@ -100,8 +106,34 @@ public class EnemyAI : MonoBehaviour
 
     private void ChasePlayer()
     {
-        agent.stoppingDistance = 1.2f;
+        agent.stoppingDistance = 2.2f;
         agent.SetDestination(player.position);
+    }
+
+    private void TryShootPlayer()
+    {
+        if (!soldierData.hasWeapon) return;
+        if (Time.time < nextFireTime) return;
+
+        Vector3 toPlayer = (playerLookTarget.position - eyePoint.position).normalized;
+
+        float angle = Vector3.Angle(eyePoint.forward, toPlayer);
+        if (angle > soldierData.visionAngle) return;
+
+        if (Vector3.Distance(eyePoint.position, player.position) > soldierData.attackRange) return;
+
+        if (Physics.Raycast(eyePoint.position, toPlayer, out RaycastHit hit, soldierData.attackRange))
+        {
+            Debug.DrawLine(eyePoint.position, hit.point, Color.yellow, 0.3f);
+
+            if (hit.collider.CompareTag("Player"))
+            {
+                playerStats.TakeDamage(soldierData.attackDamage);
+                Debug.Log($"Enemy SHOT player → {soldierData.attackDamage} damage");
+
+                nextFireTime = Time.time + soldierData.attackCooldown;
+            }
+        }
     }
 
     private void SetState(EnemyState newState)
@@ -123,7 +155,11 @@ public class EnemyAI : MonoBehaviour
     {
         if (currentState == EnemyState.Dead) return;
 
+        hasSeenPlayer = true;
+
         currentHealth -= dmg;
+        Debug.Log($"Enemy takes {dmg} damage. HP: {currentHealth}");
+
         SetState(EnemyState.Damage);
 
         if (currentHealth <= 0f)
