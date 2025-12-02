@@ -4,7 +4,7 @@ using UnityEngine.AI;
 
 public class EnemyAI : MonoBehaviour
 {
-    public enum EnemyState { Normal, Chase, Damage, Dead }
+    public enum EnemyState { Patrol, Normal, Chase, Damage, Dead }
 
     [Header("Enemy Type")]
     public Soldier soldierData;
@@ -17,7 +17,14 @@ public class EnemyAI : MonoBehaviour
 
     [SerializeField] private Transform eyePoint;
 
-    private EnemyState currentState = EnemyState.Normal;
+    [Header("Patrol")]
+    private Transform[] patrolPoints;
+    [Tooltip("Velocidad del agente mientras patrulla")]
+    public float patrolSpeed = 2f;
+    [Tooltip("Distancia para considerar 'llegado' al punto de patrulla")]
+    public float patrolPointTolerance = 0.5f;
+
+    private EnemyState currentState = EnemyState.Patrol;
     private NavMeshAgent agent;
     private Transform player;
     private PlayerStats playerStats;
@@ -27,44 +34,103 @@ public class EnemyAI : MonoBehaviour
     private bool hasSeenPlayer = false;
     private float currentHealth;
 
+    // ataque
     private float nextFireTime = 0f;
+
+    // patrol internals
+    private int patrolIndex = 0;
 
     private void Start()
     {
         agent = GetComponent<NavMeshAgent>();
 
-        player = GameObject.FindWithTag("Player").transform;
-        playerStats = player.GetComponent<PlayerStats>();
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj == null)
+        {
+            Debug.LogError("No se encontró GameObject con tag 'Player' en la escena.");
+            enabled = false;
+            return;
+        }
+
+        player = playerObj.transform;
+        playerStats = playerObj.GetComponent<PlayerStats>();
 
         spawnPos = transform.position;
-        currentHealth = soldierData.maxHealth;
+        currentHealth = soldierData != null ? soldierData.maxHealth : 50f;
 
-        playerLookTarget = player.Find("Face");
+        if (player != null)
+            playerLookTarget = player.Find("Face");
+
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            currentState = EnemyState.Patrol;
+            GoToPatrolPoint();
+        }
+        else
+        {
+            currentState = EnemyState.Normal;
+        }
 
         UpdateStateText();
+        Debug.Log($"Enemy started in state: {currentState}");
     }
 
     private void Update()
     {
         if (currentState == EnemyState.Dead) return;
-        if (!agent.enabled || !agent.isOnNavMesh) return;
+        if (agent == null || !agent.enabled || !agent.isOnNavMesh) return;
+        if (playerStats == null) return;
 
+        // Si el jugador está muerto → dejar de perseguir y volver a patrullar
         if (playerStats.Died)
         {
-            SetState(EnemyState.Normal);
-            agent.ResetPath();
             hasSeenPlayer = false;
+
+            if (currentState != EnemyState.Patrol)
+                SetState(EnemyState.Patrol);
+
+            agent.stoppingDistance = 0f;  // asegurarse de que patrulle normalmente
+
+            Patrol(); // sigue patrullando
+
             return;
         }
 
+
+        // Si ya lo vio (lo persigue hasta perderlo)
         if (hasSeenPlayer)
         {
+            // Si perdió la visión y excede la distancia de chase, dejar de perseguir y volver a patrullar
+            bool stillSees = PlayerInVisionCone();
+            float distToPlayer = Vector3.Distance(transform.position, player.position);
+
+            if (!stillSees && distToPlayer > soldierData.chaseDistance)
+            {
+                // perdió al jugador: reiniciar flags y volver a patrullar
+                hasSeenPlayer = false;
+                if (patrolPoints != null && patrolPoints.Length > 0)
+                {
+                    SetState(EnemyState.Patrol);
+                    GoToPatrolPoint();
+                }
+                else
+                {
+                    SetState(EnemyState.Normal);
+                    agent.ResetPath();
+                }
+
+                playerStats.StopDraining();
+                return;
+            }
+
+            // sigue en chase
             SetState(EnemyState.Chase);
             ChasePlayer();
             TryShootPlayer();
             return;
         }
 
+        // Si lo detecta por visión: pasa a chase
         if (PlayerInVisionCone())
         {
             hasSeenPlayer = true;
@@ -73,6 +139,13 @@ public class EnemyAI : MonoBehaviour
             TryShootPlayer();
 
             playerStats.DrainStamina(soldierData.staminaDrainRate);
+            return;
+        }
+
+        // No lo ve -> patrulla (si tiene puntos) o estado Normal
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            Patrol();
         }
         else
         {
@@ -109,6 +182,37 @@ public class EnemyAI : MonoBehaviour
             Vector3 dir = Quaternion.Euler(0, angle, 0) * eyePoint.forward;
             Gizmos.DrawRay(eyePoint.position, dir * soldierData.visionRange);
         }
+
+        // dibujar patrol points en escena
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            Gizmos.color = Color.cyan;
+            foreach (var p in patrolPoints)
+            {
+                if (p == null) continue;
+                Gizmos.DrawSphere(p.position, 0.15f);
+            }
+
+            // líneas entre puntos
+            for (int i = 0; i < patrolPoints.Length; i++)
+            {
+                Transform a = patrolPoints[i];
+                Transform b = patrolPoints[(i + 1) % patrolPoints.Length];
+                if (a != null && b != null)
+                    Gizmos.DrawLine(a.position, b.position);
+            }
+        }
+    }
+
+    public void SetPatrolPoints(Transform[] patrolPoints)
+    {
+        this.patrolPoints = patrolPoints;
+
+        currentState = EnemyState.Patrol;
+        GoToPatrolPoint();
+
+        UpdateStateText();
+        Debug.Log($"Enemy started in state: {currentState}");
     }
 
     private void ChasePlayer()
@@ -116,6 +220,7 @@ public class EnemyAI : MonoBehaviour
         if (playerStats.Died) return;
 
         agent.stoppingDistance = 2.2f;
+        agent.speed = soldierData != null ? Mathf.Max(agent.speed, soldierData.chaseDistance > 0 ? agent.speed : agent.speed) : agent.speed;
         agent.SetDestination(player.position);
     }
 
@@ -124,6 +229,8 @@ public class EnemyAI : MonoBehaviour
         if (!soldierData.hasWeapon) return;
         if (Time.time < nextFireTime) return;
         if (playerStats.Died) return;
+
+        if (playerLookTarget == null) return;
 
         Vector3 toPlayer = (playerLookTarget.position - eyePoint.position).normalized;
 
@@ -146,11 +253,49 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
+    private void Patrol()
+    {
+        if (patrolPoints == null || patrolPoints.Length == 0) return;
+
+        // asegurarse que el agent tenga como velocidad la de patrulla
+        agent.speed = patrolSpeed;
+
+        Vector3 target = patrolPoints[patrolIndex].position;
+
+        // usamos NavMeshAgent para moverse pero la lógica de llegada usa vectores
+        agent.SetDestination(target);
+
+        float dist = Vector3.Distance(transform.position, target);
+        if (dist <= patrolPointTolerance)
+        {
+            patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
+
+            agent.ResetPath(); // ← otro FIX importante
+
+            GoToPatrolPoint();
+        }
+
+    }
+
+    private void GoToPatrolPoint()
+    {
+        if (patrolPoints == null || patrolPoints.Length == 0) return;
+
+        agent?.ResetPath(); // ← FIX CLAVE
+
+        Vector3 target = patrolPoints[patrolIndex].position;
+        agent?.SetDestination(target);
+
+        Debug.Log($"Enemy going to patrol point {patrolIndex}: {target}");
+    }
+
+
     private void SetState(EnemyState newState)
     {
         if (currentState != newState)
         {
             currentState = newState;
+            Debug.Log("Enemy State → " + currentState);
             UpdateStateText();
         }
     }
@@ -189,7 +334,19 @@ public class EnemyAI : MonoBehaviour
         transform.position = spawnPos;
         agent.enabled = true;
         hasSeenPlayer = false;
-        SetState(EnemyState.Normal);
+
+        // volver a patrullar si hay puntos
+        if (patrolPoints != null && patrolPoints.Length > 0)
+        {
+            patrolIndex = 0;
+            SetState(EnemyState.Patrol);
+            GoToPatrolPoint();
+        }
+        else
+        {
+            SetState(EnemyState.Normal);
+        }
+
         gameObject.SetActive(true);
     }
 

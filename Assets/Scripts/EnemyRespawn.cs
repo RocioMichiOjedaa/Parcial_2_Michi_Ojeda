@@ -6,6 +6,9 @@ public class EnemyRespawn : MonoBehaviour
     public EnemyAI enemyPrefab;
     private EnemyAI currentEnemy;
 
+    [Tooltip("Puntos (Transforms) que el enemigo recorrerá en patrulla")]
+    public Transform[] patrolPoints;
+
     private void Start()
     {
         Spawn();
@@ -23,5 +26,6 @@ public class EnemyRespawn : MonoBehaviour
     void Spawn()
     {
         currentEnemy = Instantiate(enemyPrefab, transform.position, Quaternion.identity);
+        currentEnemy.SetPatrolPoints(patrolPoints);
     }
 }
