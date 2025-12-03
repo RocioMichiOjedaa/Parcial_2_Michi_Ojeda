@@ -158,9 +158,8 @@ MonoBehaviour:
   stateText: {fileID: 4701720626354130692}
   debugVision: 1
   eyePoint: {fileID: 7837635031532046169}
-  shootingRange: 10
-  shootingDamage: 20
-  fireRate: 1
+  patrolSpeed: 2
+  patrolPointTolerance: 0.5
 --- !u!195 &6197993019902399449
 NavMeshAgent:
   m_ObjectHideFlags: 0
