@@ -82,4 +82,17 @@ public class PlayerStats : MonoBehaviour
         canRegenStamina = true;
         died = false;
     }
+
+    public bool Heal(float amount)
+    {
+        if (Died) return false;
+        if (currentHealth >= maxHealth) return false;
+
+        currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+
+        Debug.Log($"Player healed {amount}. HP: {currentHealth}");
+
+        return true; // Sí se curó
+    }
+
 }
