@@ -89,6 +89,7 @@ public class PlayerStats : MonoBehaviour
         if (currentHealth >= maxHealth) return false;
 
         currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+        lifeText.text = "Vida: " + currentHealth;
 
         Debug.Log($"Player healed {amount}. HP: {currentHealth}");
 

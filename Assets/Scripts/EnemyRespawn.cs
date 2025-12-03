@@ -25,7 +25,7 @@ public class EnemyRespawn : MonoBehaviour
 
     void Spawn()
     {
-        currentEnemy = Instantiate(enemyPrefab, transform.position, Quaternion.identity);
+        currentEnemy = Instantiate(enemyPrefab, transform.position, transform.rotation);
         currentEnemy.SetPatrolPoints(patrolPoints);
     }
 }
